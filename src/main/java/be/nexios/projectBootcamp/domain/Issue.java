@@ -18,6 +18,7 @@ import java.time.LocalDate;
 public class Issue {
 
     @Id
+    @NotNull
     ObjectId id;
     @NotNull
     @Size(min=1,max=4096)

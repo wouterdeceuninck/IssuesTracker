@@ -12,9 +12,9 @@ public interface IssueService {
     //get all issues
     Flux<IssueDTO> getAllIssues();
     //create an issue
-    Mono<ObjectId> createIssue(Issue issue);
+    Mono<ObjectId> createIssue(IssueDTO issueDTO);
     //delete an issue
     Mono<Void> deleteIssue(ObjectId id);
     //update an issue
-    Mono<Void> updateIssue(ObjectId id, Issue issue);
+    Mono<Void> updateIssue(ObjectId id, IssueDTO issueDTO);
 }
