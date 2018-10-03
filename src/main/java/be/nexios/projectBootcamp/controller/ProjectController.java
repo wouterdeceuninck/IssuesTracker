@@ -18,6 +18,7 @@ import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
 import java.net.URI;
+import java.sql.SQLOutput;
 
 @RestController //Spring knows to map the object to JSON
 public class ProjectController {
@@ -35,6 +36,7 @@ public class ProjectController {
      */
     @PostMapping("/api/project") //Handles post-requests for /api/project/ calls
     public Mono<ResponseEntity<Void>> createProject(@Valid @RequestBody ProjectDTO projectDTO) { // @RequestBody gets the request body of Rest call
+        System.out.println(projectDTO);
         return projectService.createProject(projectDTO)
                 .map(id -> ResponseEntity
                         .created(URI.create("/api/projects" + id))

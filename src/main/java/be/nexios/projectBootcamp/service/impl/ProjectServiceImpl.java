@@ -19,12 +19,18 @@ public class ProjectServiceImpl implements ProjectService {
         this.projectRepository = projectRepository;
     }
 
-    public static Project toProject( ProjectDTO dto ) {
+    public static Project toProjectWithRandomId(ProjectDTO projectDTO) {
         return Project.builder()
-                .id(new ObjectId(dto.getId()))
-                .name(dto.getName())
-                .description(dto.getDescription())
+                .id(new ObjectId())
+                .name(projectDTO.getName())
+                .description(projectDTO.getDescription())
                 .build();
+    }
+
+    public static Project toProject( ProjectDTO dto ) {
+        Project p = toProjectWithRandomId(dto);
+        p.setId(new ObjectId(dto.getId()));
+        return p;
     }
 
     public static ProjectDTO toDTO( Project p ) {
@@ -37,9 +43,10 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Mono<ObjectId> createProject(ProjectDTO projectDTO) {
-        Project p = toProject(projectDTO);
-        p.setId(new ObjectId());
-        return projectRepository.insert(p).map( Project::getId );
+//        Project p = toProject(projectDTO);
+//        p.setId(new ObjectId());
+        return projectRepository.insert(toProjectWithRandomId(projectDTO))
+                .map( Project::getId );
 
     }
 

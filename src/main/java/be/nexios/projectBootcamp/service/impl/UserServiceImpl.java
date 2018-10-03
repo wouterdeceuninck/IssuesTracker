@@ -7,9 +7,11 @@ import be.nexios.projectBootcamp.repository.UserRepository;
 import be.nexios.projectBootcamp.service.UserService;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
@@ -21,8 +23,9 @@ public class UserServiceImpl implements UserService {
         return "The user with ID {"+id+"} does not exist";
     }
 
-    public static User toUserWithoutId(UserDTO userDTO) {
+    public static User toUserWithRandomId(UserDTO userDTO) {
         return User.builder()
+                .id(new ObjectId())
                 .firstName(userDTO.getFirstName())
                 .lastName(userDTO.getLastName())
                 .projects(userDTO.getProjects())
@@ -30,7 +33,7 @@ public class UserServiceImpl implements UserService {
     }
 
     public static User toUser(UserDTO userDTO) {
-        User user = toUserWithoutId(userDTO);
+        User user = toUserWithRandomId(userDTO);
         user.setId(new ObjectId(userDTO.getId()));
         return user;
     }
@@ -46,9 +49,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<ObjectId> createUser(UserDTO userDTO) {
-        User user = toUserWithoutId(userDTO);
-        user.setId(new ObjectId());
-        return userRepository.insert(user).map(User::getId);
+        return userRepository.insert(toUserWithRandomId(userDTO))
+                .map(User::getId);
     }
 
     @Override

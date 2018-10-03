@@ -9,6 +9,6 @@ spring:
       username: mongo
       password: mongo
       host: localhost
-      port: 27000
+      port: 27017
       database: nexios
 

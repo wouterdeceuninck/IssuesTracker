@@ -3,6 +3,7 @@ package be.nexios.projectBootcamp.controller;
 import be.nexios.projectBootcamp.service.UserService;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
@@ -11,9 +12,11 @@ import reactor.core.publisher.Mono;
 import javax.validation.Valid;
 import java.net.URI;
 
+@RestController
 public class UserController {
     private final UserService userService;
 
+    @Autowired
     public UserController(UserService userService) {
         this.userService = userService;
     }
