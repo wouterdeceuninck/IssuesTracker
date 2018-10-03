@@ -1,5 +1,7 @@
 package be.nexios.projectBootcamp.controller;
 
+import be.nexios.projectBootcamp.exception.BadRequestException;
+import be.nexios.projectBootcamp.exception.NotFoundException;
 import be.nexios.projectBootcamp.service.UserService;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
@@ -46,4 +48,14 @@ public class UserController {
     public Mono<Void> deleteUser(@PathVariable("id") ObjectId id) {
         return this.userService.deleteUser(id);
     }
+    @ExceptionHandler
+    public ResponseEntity handleNotFoundException(NotFoundException e) {
+        return ResponseEntity.notFound().build();
+    }
+
+    @ExceptionHandler
+    public ResponseEntity handleBadRequestException(BadRequestException e) {
+        return ResponseEntity.badRequest().build();
+    }
+
 }
