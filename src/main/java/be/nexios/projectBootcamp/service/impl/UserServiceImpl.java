@@ -78,6 +78,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<Void> deleteUser(ObjectId id) {
-        return null;
+        return userRepository.deleteById(id)
+                .switchIfEmpty(Mono.error(new NotFoundException("User with ID " + id + "does not exist")))
+                .flatMap(existing -> userRepository.deleteById(id).then());
     }
 }
