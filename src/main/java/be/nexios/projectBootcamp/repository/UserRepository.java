@@ -1,4 +1,8 @@
 package be.nexios.projectBootcamp.repository;
 
-public interface UserRepository {
+import be.nexios.projectBootcamp.domain.Project;
+import org.bson.types.ObjectId;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+
+public interface UserRepository extends ReactiveMongoRepository<Project, ObjectId> {
 }
