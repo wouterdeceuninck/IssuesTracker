@@ -23,4 +23,5 @@
 /nbbuild/
 /dist/
 /nbdist/
+sh.exe.stackdump
 /.nb-gradle/
