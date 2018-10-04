@@ -2,6 +2,7 @@ package be.nexios.project.service.impl;
 
 import be.nexios.project.domain.Issue;
 import be.nexios.project.domain.Project;
+import be.nexios.project.domain.User;
 import be.nexios.project.repository.ProjectRepository;
 import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.dto.IssueDTO;
@@ -33,14 +34,15 @@ public class ProjectServiceImpl implements ProjectService {
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<String> createProject(ProjectDTO dto) {
-
-        Project project = toDomain(dto);
-        project.setId(ObjectId.get());
-        project.setIssues(new ArrayList<>());
-        project.setCreator(null);
-        return projectRepository
-                .insert(project)
-                .map(created -> created.getId().toHexString());
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+            Project project = toDomain(dto);
+            project.setId(ObjectId.get());
+            project.setIssues(new ArrayList<>());
+            project.setCreator((User) auth.getAuthentication().getPrincipal());
+            return projectRepository
+                    .insert(project)
+                    .map(created -> created.getId().toHexString());
+        });
     }
 
     @Override
@@ -131,6 +133,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .id(project.getId().toHexString())
                 .name(project.getName())
                 .description(project.getDescription())
+                .creator(project.getCreator())
                 .build();
     }
 

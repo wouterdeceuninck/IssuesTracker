@@ -28,4 +28,6 @@ public class IssueDTO {
 
     @NotNull
     Priority priority;
+
+
 }

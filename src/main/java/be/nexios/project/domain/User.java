@@ -28,6 +28,9 @@ public class User implements UserDetails {
 
     String lastName;
 
+    @DBRef
+    List<Project> projects;
+
     List<Role> authorities;
 
     @DBRef
