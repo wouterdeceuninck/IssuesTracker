@@ -1,5 +1,6 @@
 package be.nexios.project.domain;
 
+import lombok.Builder;
 import lombok.Data;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
@@ -13,6 +14,7 @@ import java.util.List;
 
 @Document(collection = "users")
 @Data
+@Builder
 public class User implements UserDetails {
 
     @Id
@@ -30,6 +32,9 @@ public class User implements UserDetails {
     List<Project> projects;
 
     List<Role> authorities;
+
+    @DBRef
+    List<Project> projects;
 
     boolean enabled;
 
