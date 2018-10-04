@@ -45,11 +45,13 @@ public class ProjectServiceImpl implements ProjectService {
         });
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<ProjectDTO> getProject(String id) {
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                .map(ProjectServiceImpl::toDTO);
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
+                projectRepository.findById(new ObjectId(id))
+                    .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                    .map(ProjectServiceImpl::toDTO));
     }
 
     @Override
