@@ -1,7 +1,9 @@
 package be.nexios.project.service.impl;
 
+import be.nexios.project.domain.Project;
 import be.nexios.project.domain.Role;
 import be.nexios.project.domain.User;
+import be.nexios.project.repository.ProjectRepository;
 import be.nexios.project.repository.UserRepository;
 import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.UserService;
@@ -16,8 +18,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -38,32 +42,44 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public Mono<String> register(UserRegistrationDTO dto) {
-        User user = new User();
-        user.setId(ObjectId.get());
-        user.setUsername(dto.getUsername());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setAuthorities(Collections.singletonList(new Role("ROLE_USER")));
-        user.setEnabled(true);
+        User user = User.builder()
+            .id(ObjectId.get())
+            .username(dto.getUsername())
+            .password(passwordEncoder.encode(dto.getPassword()))
+            .projects(new ArrayList<>())
+            .authorities(Collections.singletonList(new Role("ROLE_USER")))
+            .enabled(true)
+            .build();
         return userRepository.save(user)
                 .map(created -> created.getId().toHexString());
     }
 
+    //new ObjectId(hexString)
+
     @Override
     public Mono<Void> addProject(ObjectId objectId, AddUserDTO addUserDTO) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
-            Mono<ProjectDTO> project = this.projectService.getProject(objectId.toHexString());
-            User user = this.
-            return project.flatMap( projectDTO -> {
-                user.getProjects().add(ProjectServiceImpl.toDomain(projectDTO));
-                return userRepository.save(user).then();
-            });
-        });
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
+            this.projectService.getProject(objectId.toHexString())
+                    .flatMap(projectDTO ->
+                        this.getUser(new ObjectId(addUserDTO.getId()))
+                                .flatMap(user -> {
+                                    user.getProjects().add(ProjectServiceImpl.toDomain(projectDTO));
+                                    return this.userRepository.save(user).then();
+                                })
+                    )
+        );
     }
 
-//    public Mono<UserDTO> getProject(ObjectId userId) {
-//        return this.userRepository.findById(userId)
-//                .flatMap(user -> UserServiceImpl::to);
-//    }
+    private Mono<User> getUser(ObjectId userId) {
+
+        return this.userRepository.findById(userId);
+    }
+
+
+    public Mono<UserDTO> getUserDTO(ObjectId userId) {
+        return this.getUser(userId)
+                .map(UserServiceImpl::toDTO);
+    }
 
 //    private Project toDomain(User existing) {
 //    }
@@ -81,6 +97,9 @@ public class UserServiceImpl implements UserService {
                 .id(dto.getId() != null ? new ObjectId(dto.getId()) : null)
                 .firstName(dto.getFirstname())
                 .lastName(dto.getLastname())
+                .projects(dto.getProjects() == null ?
+                        new ArrayList<Project>() :
+                        dto.getProjects().stream().map(ProjectServiceImpl::toDomain).collect(Collectors.toList()))
                 .username(dto.getUsername())
                 .authorities(dto.getAuthorities())
                 .build();

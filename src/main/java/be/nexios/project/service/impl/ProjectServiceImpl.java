@@ -45,6 +45,7 @@ public class ProjectServiceImpl implements ProjectService {
         });
     }
 
+    //TODO check if project is in user project list
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<ProjectDTO> getProject(String id) {
@@ -54,13 +55,23 @@ public class ProjectServiceImpl implements ProjectService {
                     .map(ProjectServiceImpl::toDTO));
     }
 
+    //TODO get all projects of user
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return projectRepository.findAll().map(ProjectServiceImpl::toDTO);
+        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+            User user = (User) auth.getAuthentication().getPrincipal();
+            return projectRepository.findAllByCreatorId(user.getId())
+                    .map(project -> ProjectServiceImpl.toDTO(project));
+        });
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> updateProject(String id, ProjectDTO dto) {
+//        return ReactiveSecurityContextHolder.getContext().flatMap( auth ->
+//                this.getProject(id)
+//        )
         return projectRepository.findById(new ObjectId(id))
                 .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
                 .flatMap(existing -> {

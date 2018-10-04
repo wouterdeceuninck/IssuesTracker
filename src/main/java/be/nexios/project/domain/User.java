@@ -33,9 +33,6 @@ public class User implements UserDetails {
 
     List<Role> authorities;
 
-    @DBRef
-    List<Project> projects;
-
     boolean enabled;
 
     @Override

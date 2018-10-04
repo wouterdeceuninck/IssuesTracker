@@ -17,6 +17,7 @@ public class SecurityConfig {
         return http
                 .authorizeExchange()
                 // .pathMatchers(HttpMethod.DELETE, "/api/projects/**").authenticated()
+                .pathMatchers("/api/project/**").permitAll()
                 .pathMatchers("/api/projects/**").permitAll()
                 .pathMatchers("/api/deleteeveryting").hasAuthority("CAN_DELETE_EVERYTHING")
                 .pathMatchers("/api/admin/**").hasRole("ADMIN") // ROLE_ADMIN

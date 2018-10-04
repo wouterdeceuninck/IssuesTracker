@@ -25,4 +25,6 @@ public class UserDTO {
     @NotNull
     List<Role> authorities;
 
+    List<ProjectDTO> projects;
+
 }
