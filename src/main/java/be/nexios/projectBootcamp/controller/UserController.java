@@ -3,8 +3,10 @@ package be.nexios.projectBootcamp.controller;
 import be.nexios.projectBootcamp.exception.BadRequestException;
 import be.nexios.projectBootcamp.exception.NotFoundException;
 import be.nexios.projectBootcamp.service.UserService;
+import be.nexios.projectBootcamp.service.dto.ProjectDTO;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
+import org.omg.CORBA.ObjectHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +47,11 @@ public class UserController {
     public Mono<Void> updateUser(@PathVariable("id") ObjectId id,
                                  @Valid @RequestBody UserDTO userDTO) {
         return this.userService.updateUser(id, userDTO);
+    }
+
+    @PutMapping("/api/users/addProject/")
+    public Mono<Void> addProject(@Valid @RequestBody ProjectDTO projectDTO) {
+        return this.userService.addProject(projectDTO);
     }
 
     @DeleteMapping("/api/users/{id}")

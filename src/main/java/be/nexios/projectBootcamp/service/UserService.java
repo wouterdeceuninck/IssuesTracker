@@ -1,5 +1,6 @@
 package be.nexios.projectBootcamp.service;
 
+import be.nexios.projectBootcamp.service.dto.ProjectDTO;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
 import reactor.core.publisher.Flux;
@@ -11,4 +12,5 @@ public interface UserService {
     Flux<UserDTO> getAllUsers();
     Mono<Void> updateUser(ObjectId id, UserDTO user);
     Mono<Void> deleteUser(ObjectId id);
+    Mono<Void> addProject(ProjectDTO p);
 }

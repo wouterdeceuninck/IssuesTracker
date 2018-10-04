@@ -6,6 +6,7 @@ import be.nexios.projectBootcamp.exception.BadRequestException;
 import be.nexios.projectBootcamp.exception.NotFoundException;
 import be.nexios.projectBootcamp.repository.IssueRepository;
 import be.nexios.projectBootcamp.service.IssueService;
+import be.nexios.projectBootcamp.service.ProjectService;
 import be.nexios.projectBootcamp.service.dto.IssueDTO;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;

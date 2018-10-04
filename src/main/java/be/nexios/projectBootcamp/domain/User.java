@@ -21,5 +21,6 @@ public class User {
     String firstName;
     @NotNull
     String lastName;
+    @DBRef
     List<Project> projects;
 }

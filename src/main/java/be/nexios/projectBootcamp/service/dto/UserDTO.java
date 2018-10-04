@@ -13,11 +13,11 @@ import java.util.List;
 @Data
 @Builder
 public class UserDTO {
-    @NotNull
     String id;
     @NotNull
     String firstName;
     @NotNull
     String lastName;
-    List<Project> projects;
+
+    List<ProjectDTO> projects;
 }

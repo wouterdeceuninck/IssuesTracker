@@ -1,26 +1,31 @@
 package be.nexios.projectBootcamp.service.impl;
 
+import be.nexios.projectBootcamp.domain.Project;
 import be.nexios.projectBootcamp.domain.User;
 import be.nexios.projectBootcamp.exception.BadRequestException;
 import be.nexios.projectBootcamp.exception.NotFoundException;
 import be.nexios.projectBootcamp.repository.UserRepository;
+import be.nexios.projectBootcamp.service.ProjectService;
 import be.nexios.projectBootcamp.service.UserService;
+import be.nexios.projectBootcamp.service.dto.ProjectDTO;
 import be.nexios.projectBootcamp.service.dto.UserDTO;
 import org.bson.types.ObjectId;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
+    private final String userNotFoundErrorMsg(ObjectId id) {
+        return "The user with ID {"+id+"} does not exist";
+    }
 
     public UserServiceImpl(UserRepository userRepository) {
         this.userRepository = userRepository;
-    }
-
-    private String userNotFoundErrorMsg(ObjectId id) {
-        return "The user with ID {"+id+"} does not exist";
     }
 
     public static User toUserWithRandomId(UserDTO userDTO) {
@@ -28,7 +33,11 @@ public class UserServiceImpl implements UserService {
                 .id(new ObjectId())
                 .firstName(userDTO.getFirstName())
                 .lastName(userDTO.getLastName())
-                .projects(userDTO.getProjects())
+                .projects(
+                        userDTO.getProjects().stream().map(dto ->
+                            ProjectServiceImpl.toProject(dto))
+                        .collect(Collectors.toList())
+                )
                 .build();
     }
 
@@ -42,7 +51,11 @@ public class UserServiceImpl implements UserService {
         return UserDTO.builder()
                 .firstName(user.getFirstName())
                 .lastName(user.getLastName())
-                .projects(user.getProjects())
+                .projects(
+                        user.getProjects().stream().map(project ->
+                                ProjectServiceImpl.toDTO(project))
+                                .collect(Collectors.toList())
+                )
                 .id(user.getId().toHexString())
                 .build();
     }
@@ -81,5 +94,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.deleteById(id)
                 .switchIfEmpty(Mono.error(new NotFoundException("User with ID " + id + "does not exist")))
                 .flatMap(existing -> userRepository.deleteById(id).then());
+    }
+
+    public Mono<Void> addProject(ProjectDTO projectDTO) {
+        return userRepository.findById(new ObjectId(projectDTO.getCreator().getId()))
+                .switchIfEmpty(Mono.error(new NotFoundException(this.userNotFoundErrorMsg(null))))
+                .flatMap(existing -> {
+                    existing.getProjects().add(ProjectServiceImpl.toProject(projectDTO));
+                    return userRepository.save(existing).then();
+                });
     }
 }

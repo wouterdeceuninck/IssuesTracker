@@ -7,6 +7,7 @@ import be.nexios.projectBootcamp.repository.ProjectRepository;
 import be.nexios.projectBootcamp.service.ProjectService;
 import be.nexios.projectBootcamp.service.dto.ProjectDTO;
 import org.bson.types.ObjectId;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -29,7 +30,6 @@ public class ProjectServiceImpl implements ProjectService {
 
     public static Project toProject( ProjectDTO dto ) {
         Project p = toProjectWithRandomId(dto);
-        p.setId(new ObjectId(dto.getId()));
         return p;
     }
 
@@ -43,8 +43,6 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public Mono<ObjectId> createProject(ProjectDTO projectDTO) {
-//        Project p = toProject(projectDTO);
-//        p.setId(new ObjectId());
         return projectRepository.insert(toProjectWithRandomId(projectDTO))
                 .map( Project::getId );
 
@@ -74,6 +72,7 @@ public class ProjectServiceImpl implements ProjectService {
                 });
     }
 
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> deleteProject(ObjectId id) {
         //TODO check if project exists: projectRepository.existsById(id)
