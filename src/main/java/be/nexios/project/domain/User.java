@@ -3,6 +3,7 @@ package be.nexios.project.domain;
 import lombok.Data;
 import org.bson.types.ObjectId;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.DBRef;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -24,6 +25,9 @@ public class User implements UserDetails {
     String firstName;
 
     String lastName;
+
+    @DBRef
+    List<Project> projects;
 
     List<Role> authorities;
 
