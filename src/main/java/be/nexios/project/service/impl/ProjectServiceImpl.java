@@ -1,5 +1,6 @@
 package be.nexios.project.service.impl;
 
+import be.nexios.project.Mappers.ProjectMapper;
 import be.nexios.project.domain.Issue;
 import be.nexios.project.domain.Project;
 import be.nexios.project.domain.User;
@@ -21,6 +22,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.function.Supplier;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -77,29 +79,42 @@ public class ProjectServiceImpl implements ProjectService {
                 });
     }
 
+    private <T> Mono<T> getProjectByCreatorAndDo(String projectId, ObjectId authId, Supplier<Mono<T>> supplier ) {
+        return this.getProject(projectId).flatMap(projectDTO -> {
+            ObjectId creatorId = projectDTO.getCreator().getId();
+            if(creatorId.equals(authId)) {
+                return supplier.get();
+            } else {
+                return Mono.error(new BadRequestException("You fool"));
+            }
+        });
+    }
+
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> updateProject(String id, ProjectDTO dto) {
-        return ReactiveSecurityContextHolder.getContext().flatMap( auth ->
-                this.getProject(id).flatMap(projectDTO -> {
-                    ObjectId creatorId = projectDTO.getCreator().getId();
-                    ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
-                    if(creatorId.equals(authId)) {
-                        dto.setId(id);
-                        return this.privateUpdateProject(new ObjectId(id), dto);
-                    } else {
-                        return Mono.error(new BadRequestException("You fool"));
-                    }
-                })
-        );
+        return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
+            dto.setId(id);
+            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+            return this.getProjectByCreatorAndDo(id, authId,
+                    () -> this.privateUpdateProject(new ObjectId(id), dto));
+        });
+    }
+
+    private Mono<Void> deleteAuthorizedProject(String id) {
+        return projectRepository.findById(new ObjectId(id))
+                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                .flatMap(existing -> projectRepository.deleteById(new ObjectId(id)).then());
     }
 
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> deleteProject(String id) {
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                .flatMap(existing -> projectRepository.deleteById(new ObjectId(id)).then());
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+            return this.getProjectByCreatorAndDo(id, authId,
+                    () -> this.deleteAuthorizedProject(id));
+        });
     }
 
     @Override
