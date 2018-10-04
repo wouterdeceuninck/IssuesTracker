@@ -66,20 +66,32 @@ public class ProjectServiceImpl implements ProjectService {
         });
     }
 
+    private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
+        return projectRepository.findById(projectId)
+                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + projectId + " does not exist")))
+                .flatMap(existing -> {
+                    if (!projectId.toHexString().equals(projectDTO.getId())) {
+                        return Mono.error(new BadRequestException("Ids don't match"));
+                    }
+                    return projectRepository.save(toDomain(projectDTO)).then();
+                });
+    }
+
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> updateProject(String id, ProjectDTO dto) {
-//        return ReactiveSecurityContextHolder.getContext().flatMap( auth ->
-//                this.getProject(id)
-//        )
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                .flatMap(existing -> {
-                    if (!id.equals(dto.getId())) {
-                        return Mono.error(new BadRequestException("Ids don't match"));
+        return ReactiveSecurityContextHolder.getContext().flatMap( auth ->
+                this.getProject(id).flatMap(projectDTO -> {
+                    ObjectId creatorId = projectDTO.getCreator().getId();
+                    ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+                    if(creatorId.equals(authId)) {
+                        dto.setId(id);
+                        return this.privateUpdateProject(new ObjectId(id), dto);
+                    } else {
+                        return Mono.error(new BadRequestException("You fool"));
                     }
-                    return projectRepository.save(toDomain(dto)).then();
-                });
+                })
+        );
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -133,6 +145,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .id(dto.getId() != null ? new ObjectId(dto.getId()) : null)
                 .name(dto.getName())
                 .description(dto.getDescription())
+                .creator(dto.getCreator())
                 .build();
     }
 
