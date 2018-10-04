@@ -1,11 +1,3 @@
 logging:
   level:
     be.nexios.project: debug
-spring:
-  data:
-    mongodb:
-      username: mongo
-      password: mongo
-      host: localhost
-      port: 27000
-      database: nexios
