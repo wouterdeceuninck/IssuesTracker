@@ -12,10 +12,13 @@ import be.nexios.project.service.dto.ProjectDTO;
 import be.nexios.project.service.dto.UserDTO;
 import be.nexios.project.service.dto.UserRegistrationDTO;
 import org.bson.types.ObjectId;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
@@ -47,7 +50,7 @@ public class UserServiceImpl implements UserService {
             .username(dto.getUsername())
             .password(passwordEncoder.encode(dto.getPassword()))
             .projects(new ArrayList<>())
-            .authorities(Collections.singletonList(new Role("ROLE_USER")))
+            .authorities(Collections.singletonList(Role.builder().authority("ROLE_USER").build()))
             .enabled(true)
             .build();
         return userRepository.save(user)
@@ -57,9 +60,9 @@ public class UserServiceImpl implements UserService {
     //new ObjectId(hexString)
 
     @Override
-    public Mono<Void> addProject(ObjectId objectId, AddUserDTO addUserDTO) {
+    public Mono<Void> addProject(ObjectId projectId, AddUserDTO addUserDTO) {
         return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
-            this.projectService.getProject(objectId.toHexString())
+            this.projectService.getProject(projectId.toHexString())
                     .flatMap(projectDTO ->
                         this.getUser(new ObjectId(addUserDTO.getId()))
                                 .flatMap(user -> {
@@ -68,6 +71,16 @@ public class UserServiceImpl implements UserService {
                                 })
                     )
         );
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    public Flux<ProjectDTO> getProjects() {
+        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+            String username = (String) auth.getAuthentication().getPrincipal();
+                return userRepository.findByUsername(username).flux().flatMap(user ->
+                    projectService.getProjects(user.getId())
+                );
+        });
     }
 
     private Mono<User> getUser(ObjectId userId) {
@@ -87,6 +100,30 @@ public class UserServiceImpl implements UserService {
     @Override
     public Mono<UserDetails> findByUsername(String username) {
         return userRepository.findByUsername(username).map(Function.identity());
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Override
+    public Mono<String> createProject(ProjectDTO dto) {
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+            Project project = ProjectServiceImpl.toDomain(dto);
+            project.setId(ObjectId.get());
+            project.setIssues(new ArrayList<>());
+
+
+            userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+                project.setCreator(user);
+//                user.getProjects().add(project);
+                return projectRepository
+                    .insert(project)
+                    .map(created -> created.getId().toHexString());
+            });
+
+            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+                user.getProjects().add(project);
+                return userRepository.save(user).map(e -> e.getId().toHexString());
+            });
+        });
     }
 
     public static User toUser(UserDTO dto){

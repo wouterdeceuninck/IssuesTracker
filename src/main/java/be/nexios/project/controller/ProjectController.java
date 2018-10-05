@@ -31,20 +31,20 @@ public class ProjectController {
         return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication);
     }
 
-    /**
-     * POST /api/projects
-     * Create a new project
-     *
-     * @param projectDto
-     * @return
-     */
-    @PostMapping("/api/projects")
-    public Mono<ResponseEntity<Void>> createProject(@Valid @RequestBody ProjectDTO projectDto) {
-        return projectService.createProject(projectDto)
-                .map(id -> ResponseEntity
-                        .created(URI.create("/api/projects/" + id))
-                        .build());
-    }
+//    /**
+//     * POST /api/projects
+//     * Create a new project
+//     *
+//     * @param projectDto
+//     * @return
+//     */
+//    @PostMapping("/api/project")
+//    public Mono<ResponseEntity<Void>> createProject(@Valid @RequestBody ProjectDTO projectDto) {
+//        return projectService.createProject(projectDto)
+//                .map(id -> ResponseEntity
+//                        .created(URI.create("/api/projects/" + id))
+//                        .build());
+//    }
 
     /**
      * GET /api/projects/{id}
@@ -61,10 +61,10 @@ public class ProjectController {
      * GET /api/projects
      * Get a list of all the projects
      */
-    @GetMapping("/api/projects")
-    public Flux<ProjectDTO> getAllProjects() {
-        return projectService.getProjects();
-    }
+//    @GetMapping("/api/projects")
+//    public Flux<ProjectDTO> getAllProjects() {
+//        return projectService.getProjects();
+//    }
 
     /**
      * PUT /api/projects/{id}

@@ -33,20 +33,6 @@ public class ProjectServiceImpl implements ProjectService {
         this.projectRepository = projectRepository;
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @Override
-    public Mono<String> createProject(ProjectDTO dto) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
-            Project project = toDomain(dto);
-            project.setId(ObjectId.get());
-            project.setIssues(new ArrayList<>());
-            project.setCreator((User) auth.getAuthentication().getPrincipal());
-            return projectRepository
-                    .insert(project)
-                    .map(created -> created.getId().toHexString());
-        });
-    }
-
     //TODO check if project is in user project list
     @PreAuthorize("isAuthenticated()")
     @Override
@@ -61,11 +47,19 @@ public class ProjectServiceImpl implements ProjectService {
     @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
-            User user = (User) auth.getAuthentication().getPrincipal();
-            return projectRepository.findAllByCreatorId(user.getId())
-                    .map(project -> ProjectServiceImpl.toDTO(project));
-        });
+        return Flux.error(new BadRequestException("Don't use this api path"));
+//        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+//            String username = (String) auth.getAuthentication().getPrincipal();
+//
+//            return projectRepository.findAllByCreatorId(user.getId())
+//                    .map(project -> ProjectServiceImpl.toDTO(project));
+//        });
+    }
+
+    @Override
+    public Flux<ProjectDTO> getProjects(ObjectId userId) {
+        return projectRepository.findAllByCreatorId(userId)
+                .map(project -> ProjectServiceImpl.toDTO(project));
     }
 
     private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
