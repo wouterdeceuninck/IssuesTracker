@@ -1,5 +1,6 @@
 package be.nexios.project.service.impl;
 
+import be.nexios.project.Mappers.ProjectMapper;
 import be.nexios.project.domain.Issue;
 import be.nexios.project.domain.Project;
 import be.nexios.project.domain.User;
@@ -22,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.function.Supplier;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -48,36 +50,74 @@ public class ProjectServiceImpl implements ProjectService {
         });
     }
 
+    //TODO check if project is in user project list
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<ProjectDTO> getProject(String id) {
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                .map(ProjectServiceImpl::toDTO);
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
+                projectRepository.findById(new ObjectId(id))
+                    .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                    .map(ProjectServiceImpl::toDTO));
     }
 
+    //TODO get all projects of user
+    @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return projectRepository.findAll().map(ProjectServiceImpl::toDTO);
+        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+            User user = (User) auth.getAuthentication().getPrincipal();
+            return projectRepository.findAllByCreatorId(user.getId())
+                    .map(project -> ProjectServiceImpl.toDTO(project));
+        });
     }
 
-    @Override
-    public Mono<Void> updateProject(String id, ProjectDTO dto) {
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+    private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
+        return projectRepository.findById(projectId)
+                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + projectId + " does not exist")))
                 .flatMap(existing -> {
-                    if (!id.equals(dto.getId())) {
+                    if (!projectId.toHexString().equals(projectDTO.getId())) {
                         return Mono.error(new BadRequestException("Ids don't match"));
                     }
-                    return projectRepository.save(toDomain(dto)).then();
+                    return projectRepository.save(toDomain(projectDTO)).then();
                 });
+    }
+
+    private <T> Mono<T> getProjectByCreatorAndDo(String projectId, ObjectId authId, Supplier<Mono<T>> supplier ) {
+        return this.getProject(projectId).flatMap(projectDTO -> {
+            ObjectId creatorId = projectDTO.getCreator().getId();
+            if(creatorId.equals(authId)) {
+                return supplier.get();
+            } else {
+                return Mono.error(new BadRequestException("You fool"));
+            }
+        });
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Override
+    public Mono<Void> updateProject(String id, ProjectDTO dto) {
+        return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
+            dto.setId(id);
+            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+            return this.getProjectByCreatorAndDo(id, authId,
+                    () -> this.privateUpdateProject(new ObjectId(id), dto));
+        });
+    }
+
+    private Mono<Void> deleteAuthorizedProject(String id) {
+        return projectRepository.findById(new ObjectId(id))
+                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                .flatMap(existing -> projectRepository.deleteById(new ObjectId(id)).then());
     }
 
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<Void> deleteProject(String id) {
-        return projectRepository.findById(new ObjectId(id))
-                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                .flatMap(existing -> projectRepository.deleteById(new ObjectId(id)).then());
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+            return this.getProjectByCreatorAndDo(id, authId,
+                    () -> this.deleteAuthorizedProject(id));
+        });
     }
 
     @Override
@@ -146,6 +186,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .id(dto.getId() != null ? new ObjectId(dto.getId()) : null)
                 .name(dto.getName())
                 .description(dto.getDescription())
+                .creator(dto.getCreator())
                 .build();
     }
 
