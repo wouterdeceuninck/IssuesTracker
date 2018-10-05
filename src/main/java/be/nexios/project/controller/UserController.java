@@ -59,20 +59,4 @@ public class UserController {
                     return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
                 }).defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
-
-//    @GetMapping("/api/projects")
-//    public Flux<ProjectDTO> getProjects() {
-//        return userService.getProjects();
-//    }
-//
-//    @PostMapping("/api/projects/create")
-//    public Mono<String> createProject(@Valid @RequestBody ProjectDTO projectDTO) {
-//        return userService.createProject(projectDTO);
-//    }
-//
-//    @PutMapping("/api/projects/update")
-//    public Mono<Void> updateProject(@Valid @RequestBody ProjectDTO projectDTO) {
-//        return userService.updateProject(projectDTO);
-//    }
-
 }

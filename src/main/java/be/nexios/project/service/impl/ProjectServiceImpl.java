@@ -23,6 +23,7 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -45,18 +46,18 @@ public class ProjectServiceImpl implements ProjectService {
             project.setId(ObjectId.get());
             project.setIssues(new ArrayList<>());
 
-
-            userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).map( user -> {
                 project.setCreator(user);
-//                user.getProjects().add(project);
-                return projectRepository
-                        .insert(project)
-                        .map(created -> created.getId().toHexString());
-            });
-
-            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
-                user.getProjects().add(project);
-                return userRepository.save(user).map(e -> e.getId().toHexString());
+                projectRepository.insert(project);
+                return user;
+            }).flatMap(user -> {
+                Flux<Project> fluxList = Flux.fromIterable(user.getProjects());
+                Flux<Project> fluxProject = Flux.just(project);
+                Flux<Project> newFluxList = fluxList.concat(fluxProject);
+                return newFluxList.collectList().flatMap( projects -> {
+                    user.setProjects(projects);
+                    return userRepository.save(user).map(e -> e.getId().toHexString());
+                });
             });
         });
     }
