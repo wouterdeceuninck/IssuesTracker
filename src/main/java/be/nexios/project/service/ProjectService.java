@@ -5,10 +5,14 @@ import be.nexios.project.service.dto.IssueDTO;
 import be.nexios.project.service.dto.IssueFullDTO;
 import be.nexios.project.service.dto.ProjectDTO;
 import org.bson.types.ObjectId;
+import org.springframework.security.access.prepost.PreAuthorize;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ProjectService {
+
+    @PreAuthorize("isAuthenticated()")
+    Mono<String> createProject(ProjectDTO dto);
 
     /**
      * Create a new project
@@ -21,8 +25,6 @@ public interface ProjectService {
     Mono<ProjectDTO> getProject(String id);
 
     Flux<ProjectDTO> getProjects();
-
-    Flux<ProjectDTO> getProjects(ObjectId userId);
 
     Mono<Void> updateProject(String id, ProjectDTO dto);
 

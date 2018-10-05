@@ -2,6 +2,7 @@ package be.nexios.project.controller;
 
 import be.nexios.project.config.JwtUtil;
 import be.nexios.project.domain.User;
+import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.UserService;
 import be.nexios.project.service.dto.AddUserDTO;
 import be.nexios.project.service.dto.ProjectDTO;
@@ -24,16 +25,14 @@ import java.util.ArrayList;
 public class UserController {
 
     private final UserService userService;
-    private final ProjectService projectService;
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
     public UserController(UserService userService,
-                          ProjectService projectService,
                           JwtUtil jwtUtil,
                           PasswordEncoder passwordEncoder) {
+
         this.userService = userService;
-        this.projectService = projectService;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
@@ -61,16 +60,19 @@ public class UserController {
                 }).defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
 
-    @GetMapping("/api/projects")
-    public Flux<ProjectDTO> getProjects() {
-        return userService.getProjects();
-    }
+//    @GetMapping("/api/projects")
+//    public Flux<ProjectDTO> getProjects() {
+//        return userService.getProjects();
+//    }
+//
+//    @PostMapping("/api/projects/create")
+//    public Mono<String> createProject(@Valid @RequestBody ProjectDTO projectDTO) {
+//        return userService.createProject(projectDTO);
+//    }
+//
+//    @PutMapping("/api/projects/update")
+//    public Mono<Void> updateProject(@Valid @RequestBody ProjectDTO projectDTO) {
+//        return userService.updateProject(projectDTO);
+//    }
 
-    @PostMapping("/api/projects/create")
-    public Mono<String> createProject(@Valid @RequestBody ProjectDTO projectDTO) {
-        return userService.createProject(projectDTO);
-    }
-
-    @PutMapping("/api/projects/update")
-    public Mono<Void> updateProject(@)
 }

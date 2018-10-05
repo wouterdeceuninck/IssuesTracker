@@ -14,7 +14,7 @@ public interface UserService extends ReactiveUserDetailsService {
 
     Mono<Void> addProject(ObjectId objectId, AddUserDTO addUserDTO);
 
-    Flux<ProjectDTO> getProjects();
-
-    Mono<String> createProject(ProjectDTO projectDTO);
+//    Flux<ProjectDTO> getProjects();
+//
+//    Mono<String> createProject(ProjectDTO projectDTO);
 }

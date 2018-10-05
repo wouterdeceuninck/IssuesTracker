@@ -73,15 +73,15 @@ public class UserServiceImpl implements UserService {
         );
     }
 
-    @PreAuthorize("isAuthenticated()")
-    public Flux<ProjectDTO> getProjects() {
-        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
-            String username = (String) auth.getAuthentication().getPrincipal();
-                return userRepository.findByUsername(username).flux().flatMap(user ->
-                    projectService.getProjects(user.getId())
-                );
-        });
-    }
+//    @PreAuthorize("isAuthenticated()")
+//    public Flux<ProjectDTO> getProjects() {
+//        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+//            String username = (String) auth.getAuthentication().getPrincipal();
+//                return userRepository.findByUsername(username).flux().flatMap(user ->
+//                    projectService.getProjects(user.getId())
+//                );
+//        });
+//    }
 
     private Mono<User> getUser(ObjectId userId) {
 
@@ -102,29 +102,29 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByUsername(username).map(Function.identity());
     }
 
-    @PreAuthorize("isAuthenticated()")
-    @Override
-    public Mono<String> createProject(ProjectDTO dto) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
-            Project project = ProjectServiceImpl.toDomain(dto);
-            project.setId(ObjectId.get());
-            project.setIssues(new ArrayList<>());
-
-
-            userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
-                project.setCreator(user);
+//    @PreAuthorize("isAuthenticated()")
+//    @Override
+//    public Mono<String> createProject(ProjectDTO dto) {
+//        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+//            Project project = ProjectServiceImpl.toDomain(dto);
+//            project.setId(ObjectId.get());
+//            project.setIssues(new ArrayList<>());
+//
+//
+//            userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+//                project.setCreator(user);
+////                user.getProjects().add(project);
+//                return projectRepository
+//                    .insert(project)
+//                    .map(created -> created.getId().toHexString());
+//            });
+//
+//            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
 //                user.getProjects().add(project);
-                return projectRepository
-                    .insert(project)
-                    .map(created -> created.getId().toHexString());
-            });
-
-            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
-                user.getProjects().add(project);
-                return userRepository.save(user).map(e -> e.getId().toHexString());
-            });
-        });
-    }
+//                return userRepository.save(user).map(e -> e.getId().toHexString());
+//            });
+//        });
+//    }
 
     public static User toUser(UserDTO dto){
         if (dto == null){

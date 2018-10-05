@@ -32,6 +32,21 @@ public class ProjectController {
         return ReactiveSecurityContextHolder.getContext().map(SecurityContext::getAuthentication);
     }
 
+    @GetMapping("/api/projects")
+    public Flux<ProjectDTO> getProjects() {
+        return projectService.getProjects();
+    }
+
+    @PostMapping("/api/projects/create")
+    public Mono<String> createProject(@Valid @RequestBody ProjectDTO projectDTO) {
+        return projectService.createProject(projectDTO);
+    }
+
+//    @PutMapping("/api/projects/update")
+//    public Mono<Void> updateProject(@Valid @RequestBody ProjectDTO projectDTO) {
+//        return projectService.updateProject(projectDTO);
+//    }
+
 //    /**
 //     * POST /api/projects
 //     * Create a new project

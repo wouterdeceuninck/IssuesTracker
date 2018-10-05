@@ -24,6 +24,7 @@ import reactor.core.publisher.Mono;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -36,6 +37,31 @@ public class ProjectServiceImpl implements ProjectService {
         this.userRepository = userRepository;
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @Override
+    public Mono<String> createProject(ProjectDTO dto) {
+        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
+            Project project = ProjectServiceImpl.toDomain(dto);
+            project.setId(ObjectId.get());
+            project.setIssues(new ArrayList<>());
+
+
+            userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+                project.setCreator(user);
+//                user.getProjects().add(project);
+                return projectRepository
+                        .insert(project)
+                        .map(created -> created.getId().toHexString());
+            });
+
+            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).flatMap( user -> {
+                user.getProjects().add(project);
+                return userRepository.save(user).map(e -> e.getId().toHexString());
+            });
+        });
+    }
+
+
     //TODO check if project is in user project list
     @PreAuthorize("isAuthenticated()")
     @Override
@@ -46,23 +72,16 @@ public class ProjectServiceImpl implements ProjectService {
                     .map(ProjectServiceImpl::toDTO));
     }
 
-    //TODO get all projects of user
     @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return Flux.error(new BadRequestException("Don't use this api path"));
-//        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
-//            String username = (String) auth.getAuthentication().getPrincipal();
-//
-//            return projectRepository.findAllByCreatorId(user.getId())
-//                    .map(project -> ProjectServiceImpl.toDTO(project));
-//        });
-    }
-
-    @Override
-    public Flux<ProjectDTO> getProjects(ObjectId userId) {
-        return projectRepository.findAllByCreatorId(userId)
-                .map(project -> ProjectServiceImpl.toDTO(project));
+        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
+            String username = (String) auth.getAuthentication().getPrincipal();
+            return userRepository.findByUsername(username).flux().flatMap(user ->
+                    projectRepository.findAllByCreatorId(user.getId())
+                            .map(ProjectServiceImpl::toDTO)
+            );
+        });
     }
 
     private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
@@ -91,12 +110,23 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public Mono<Void> updateProject(String id, ProjectDTO dto) {
         return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
-            dto.setId(id);
+            dto.setId(dto.getId());
             ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
             return this.getProjectByCreatorAndDo(id, authId,
                     () -> this.privateUpdateProject(new ObjectId(id), dto));
         });
     }
+
+//    @PreAuthorize("isAuthenticated()")
+//    @Override
+//    public Mono<Void> updateProject(String id, ProjectDTO dto) {
+//        return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
+//            dto.setId(id);
+//            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
+//            return this.getProjectByCreatorAndDo(id, authId,
+//                    () -> this.privateUpdateProject(new ObjectId(id), dto));
+//        });
+//    }
 
     private Mono<Void> deleteAuthorizedProject(String id) {
         return projectRepository.findById(new ObjectId(id))
