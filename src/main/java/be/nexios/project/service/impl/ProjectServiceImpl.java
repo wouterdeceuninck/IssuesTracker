@@ -23,7 +23,6 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -41,48 +40,51 @@ public class ProjectServiceImpl implements ProjectService {
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<String> createProject(ProjectDTO dto) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
-            Project project = ProjectServiceImpl.toDomain(dto);
-            project.setId(ObjectId.get());
-            project.setIssues(new ArrayList<>());
-
-            return userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()).map( user -> {
-                project.setCreator(user);
-                projectRepository.insert(project);
-                return user;
-            }).flatMap(user -> {
-                Flux<Project> fluxList = Flux.fromIterable(user.getProjects());
-                Flux<Project> fluxProject = Flux.just(project);
-                Flux<Project> newFluxList = fluxList.concat(fluxProject);
-                return newFluxList.collectList().flatMap( projects -> {
-                    user.setProjects(projects);
-                    return userRepository.save(user).map(e -> e.getId().toHexString());
-                });
-            });
-        });
+        return ReactiveSecurityContextHolder.getContext()
+                .flatMap(auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap(user -> {
+                    Project project = toDomain(dto);
+                    project.setId(ObjectId.get());
+                    project.setIssues(new ArrayList<>());
+                    project.setCreator(user);
+                    return projectRepository.insert(project);
+                })
+                .flatMap(p -> {
+//                        System.out.println(project.getCreator().getProjects().toString());
+                        p.getCreator().getProjects().add(p);
+                        return userRepository.save(p.getCreator()).then(Mono.just(p));
+                })
+                .map(created -> created.getId().toHexString());
     }
 
+    private User smallUser(User user) {
+        return User.builder().firstName(user.getFirstName()).id(user.getId()).projects(new ArrayList<>()).build();
+    }
 
     //TODO check if project is in user project list
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<ProjectDTO> getProject(String id) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
-                projectRepository.findById(new ObjectId(id))
-                    .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                    .map(ProjectServiceImpl::toDTO));
+        return ReactiveSecurityContextHolder.getContext().
+                flatMap(auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap(user -> userRepository.existsByIdAndProjectsContains(user.getId(), Project.builder().id(new ObjectId(id)).build()))
+                .flatMap(exists -> {
+                    if (exists) {
+                        return projectRepository.findById(new ObjectId(id))
+                                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                                .map(ProjectServiceImpl::toDTO);
+                    } else {
+                        return Mono.empty();
+                    }
+                });
     }
 
     @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
-            String username = (String) auth.getAuthentication().getPrincipal();
-            return userRepository.findByUsername(username).flux().flatMap(user ->
-                    projectRepository.findAllByCreatorId(user.getId())
-                            .map(ProjectServiceImpl::toDTO)
-            );
-        });
+        return ReactiveSecurityContextHolder.getContext().flux()
+                .flatMap( auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap( user -> Flux.fromIterable(user.getProjects().stream().map(p -> toDTO(p)).collect(Collectors.toList())));
     }
 
     private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
@@ -111,23 +113,12 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public Mono<Void> updateProject(String id, ProjectDTO dto) {
         return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
-            dto.setId(dto.getId());
+            dto.setId(id);
             ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
             return this.getProjectByCreatorAndDo(id, authId,
                     () -> this.privateUpdateProject(new ObjectId(id), dto));
         });
     }
-
-//    @PreAuthorize("isAuthenticated()")
-//    @Override
-//    public Mono<Void> updateProject(String id, ProjectDTO dto) {
-//        return ReactiveSecurityContextHolder.getContext().flatMap( auth -> {
-//            dto.setId(id);
-//            ObjectId authId = ((User) auth.getAuthentication().getPrincipal()).getId();
-//            return this.getProjectByCreatorAndDo(id, authId,
-//                    () -> this.privateUpdateProject(new ObjectId(id), dto));
-//        });
-//    }
 
     private Mono<Void> deleteAuthorizedProject(String id) {
         return projectRepository.findById(new ObjectId(id))
@@ -176,7 +167,6 @@ public class ProjectServiceImpl implements ProjectService {
                                 });
                     }
                     else{
-                        System.out.println("Dit is fout");
                         return Mono.empty();
                     }
                 });
@@ -225,7 +215,13 @@ public class ProjectServiceImpl implements ProjectService {
                 .id(project.getId().toHexString())
                 .name(project.getName())
                 .description(project.getDescription())
-                .creator(project.getCreator())
+                .creator(User.builder()
+                        .id(project.getCreator().getId())
+                        .username(project.getCreator().getUsername())
+                        .firstName(project.getCreator().getFirstName())
+                        .lastName(project.getCreator().getLastName())
+                        .authorities(project.getCreator().getAuthorities())
+                        .build())
                 .build();
     }
 
