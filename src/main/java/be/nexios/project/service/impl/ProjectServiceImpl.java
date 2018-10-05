@@ -32,6 +32,7 @@ public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
+    private Project project;
 
     public ProjectServiceImpl(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
@@ -50,12 +51,16 @@ public class ProjectServiceImpl implements ProjectService {
                     project.setCreator(user);
                     return projectRepository.insert(project);
                 })
-                .flatMap(project -> {
-                        System.out.println(project.getCreator().getProjects().toString());
-                        project.getCreator().getProjects().add(project);
-                        return userRepository.save(project.getCreator()).then(Mono.just(project));
+                .flatMap(p -> {
+//                        System.out.println(project.getCreator().getProjects().toString());
+                        p.getCreator().getProjects().add(p);
+                        return userRepository.save(p.getCreator()).then(Mono.just(p));
                 })
                 .map(created -> created.getId().toHexString());
+    }
+
+    private User smallUser(User user) {
+        return User.builder().firstName(user.getFirstName()).id(user.getId()).projects(new ArrayList<>()).build();
     }
 
     @PreAuthorize("isAuthenticated()")
