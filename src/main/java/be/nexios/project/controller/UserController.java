@@ -2,17 +2,24 @@ package be.nexios.project.controller;
 
 import be.nexios.project.config.JwtUtil;
 import be.nexios.project.domain.User;
+import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.UserService;
+import be.nexios.project.service.dto.AddUserDTO;
+import be.nexios.project.service.dto.ProjectDTO;
 import be.nexios.project.service.dto.UserRegistrationDTO;
+import org.bson.types.ObjectId;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.ReactiveSecurityContextHolder;
+import org.springframework.security.core.parameters.P;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 
 @RestController
 public class UserController {
@@ -21,7 +28,10 @@ public class UserController {
     private final JwtUtil jwtUtil;
     private final PasswordEncoder passwordEncoder;
 
-    public UserController(UserService userService, JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService,
+                          JwtUtil jwtUtil,
+                          PasswordEncoder passwordEncoder) {
+
         this.userService = userService;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
@@ -32,20 +42,37 @@ public class UserController {
         return userService.register(dto);
     }
 
+    @PreAuthorize("isAuthenticated()")
+    @PostMapping("/api/project/{id}/addUser")
+    public Mono<Void> addProject(@PathVariable("id") ObjectId objectId, @Valid @RequestBody AddUserDTO addUserDTO) {
+        return userService.addProject(objectId, addUserDTO);
+    }
+
     @PostMapping("/api/login")
-    public Mono<ResponseEntity<Object>> login(@Valid @RequestBody UserRegistrationDTO dto){
+    public Mono<ResponseEntity<Object>> login(@Valid @RequestBody UserRegistrationDTO dto) {
         return userService.findByUsername(dto.getUsername())
                 .map(userDetails -> {
-                    if (passwordEncoder.matches(dto.getPassword(), userDetails.getPassword())) {
-                        return ResponseEntity
-                                .ok()
-                                .header("Authorization", "Bearer", jwtUtil.createToken((User) userDetails))
+                    if(passwordEncoder.matches(dto.getPassword(), userDetails.getPassword()))
+                        return ResponseEntity.ok()
+                                .header("Authorization", "Bearer " + jwtUtil.createToken((User)userDetails))
                                 .build();
-                    }
-                    else{
-                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
-                    }
-
+                    return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
                 }).defaultIfEmpty(ResponseEntity.status(HttpStatus.UNAUTHORIZED).build());
     }
+
+//    @GetMapping("/api/projects")
+//    public Flux<ProjectDTO> getProjects() {
+//        return userService.getProjects();
+//    }
+//
+//    @PostMapping("/api/projects/create")
+//    public Mono<String> createProject(@Valid @RequestBody ProjectDTO projectDTO) {
+//        return userService.createProject(projectDTO);
+//    }
+//
+//    @PutMapping("/api/projects/update")
+//    public Mono<Void> updateProject(@Valid @RequestBody ProjectDTO projectDTO) {
+//        return userService.updateProject(projectDTO);
+//    }
+
 }

@@ -2,6 +2,7 @@ package be.nexios.project.config;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
@@ -12,11 +13,12 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 @Component
-public class JwtSecurityContextRepository implements ServerSecurityContextRepository {
+public class JwtSecurityContextRepository
+    implements ServerSecurityContextRepository {
 
     private final ReactiveAuthenticationManager authenticationManager;
 
-    public JwtSecurityContextRepository(ReactiveAuthenticationManager authenticationManager){
+    public JwtSecurityContextRepository(ReactiveAuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
     }
 
@@ -27,17 +29,14 @@ public class JwtSecurityContextRepository implements ServerSecurityContextReposi
 
     @Override
     public Mono<SecurityContext> load(ServerWebExchange exchange) {
-
         ServerHttpRequest request = exchange.getRequest();
-        String authHeaderValue = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
-        if (authHeaderValue != null && authHeaderValue.startsWith("Bearer") ){
-            String token = authHeaderValue.substring("Bearer".length());
+        String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
+        if( authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring("Bearer ".length());
             return this.authenticationManager
                     .authenticate(new UsernamePasswordAuthenticationToken(token, token))
                     .map(SecurityContextImpl::new);
-        }
-        else{
+        } else
             return Mono.empty();
-        }
     }
 }

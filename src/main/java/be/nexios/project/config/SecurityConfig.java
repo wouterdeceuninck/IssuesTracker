@@ -2,6 +2,7 @@ package be.nexios.project.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
 import org.springframework.security.config.annotation.method.configuration.EnableReactiveMethodSecurity;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
@@ -15,19 +16,21 @@ import org.springframework.security.web.server.context.ServerSecurityContextRepo
 public class SecurityConfig {
 
     private final ReactiveAuthenticationManager authenticationManager;
-    private final ServerSecurityContextRepository securityContextRepository;
+    private final ServerSecurityContextRepository serverSecurityContextRepository;
 
-    public SecurityConfig(ReactiveAuthenticationManager authenticationManager, ServerSecurityContextRepository securityContextRepository){
+    public SecurityConfig(ReactiveAuthenticationManager authenticationManager, ServerSecurityContextRepository serverSecurityContextRepository) {
         this.authenticationManager = authenticationManager;
-        this.securityContextRepository = securityContextRepository;
+        this.serverSecurityContextRepository = serverSecurityContextRepository;
     }
 
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
-                .authenticationManager(authenticationManager)
-                .securityContextRepository(securityContextRepository)
+                .authenticationManager(this.authenticationManager)
+                .securityContextRepository(this.serverSecurityContextRepository)
                 .authorizeExchange()
+                // .pathMatchers(HttpMethod.DELETE, "/api/projects/**").authenticated()
+                .pathMatchers("/api/project/**").permitAll()
                 .pathMatchers("/api/projects/**").permitAll()
                 .pathMatchers("/api/deleteeveryting").hasAuthority("CAN_DELETE_EVERYTHING")
                 .pathMatchers("/api/admin/**").hasRole("ADMIN") // ROLE_ADMIN

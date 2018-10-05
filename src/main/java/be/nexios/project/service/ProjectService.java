@@ -1,12 +1,18 @@
 package be.nexios.project.service;
 
+import be.nexios.project.domain.User;
 import be.nexios.project.service.dto.IssueDTO;
 import be.nexios.project.service.dto.IssueFullDTO;
 import be.nexios.project.service.dto.ProjectDTO;
+import org.bson.types.ObjectId;
+import org.springframework.security.access.prepost.PreAuthorize;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ProjectService {
+
+    @PreAuthorize("isAuthenticated()")
+    Mono<String> createProject(ProjectDTO dto);
 
     /**
      * Create a new project
@@ -14,7 +20,7 @@ public interface ProjectService {
      * @param dto A DTO of the project to create
      * @return A Mono of the UUID as a String
      */
-    Mono<String> createProject(ProjectDTO dto);
+//    Mono<String> createProject(ProjectDTO dto);
 
     Mono<ProjectDTO> getProject(String id);
 
