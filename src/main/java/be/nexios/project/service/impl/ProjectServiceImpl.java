@@ -39,25 +39,38 @@ public class ProjectServiceImpl implements ProjectService {
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<String> createProject(ProjectDTO dto) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth -> {
-            Project project = toDomain(dto);
-            project.setId(ObjectId.get());
-            project.setIssues(new ArrayList<>());
-            project.setCreator((User) auth.getAuthentication().getPrincipal());
-            return projectRepository
-                    .insert(project)
-                    .map(created -> created.getId().toHexString());
-        });
+        return ReactiveSecurityContextHolder.getContext()
+                .flatMap(auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap(user -> {
+                    Project project = toDomain(dto);
+                    project.setId(ObjectId.get());
+                    project.setIssues(new ArrayList<>());
+                    project.setCreator(user);
+                    return projectRepository.insert(project);
+                })
+                .flatMap(project -> {
+                        System.out.println(project.getCreator().getProjects().toString());
+                        project.getCreator().getProjects().add(project);
+                        return userRepository.save(project.getCreator()).then(Mono.just(project));
+                })
+                .map(created -> created.getId().toHexString());
     }
 
-    //TODO check if project is in user project list
     @PreAuthorize("isAuthenticated()")
     @Override
     public Mono<ProjectDTO> getProject(String id) {
-        return ReactiveSecurityContextHolder.getContext().flatMap(auth ->
-                projectRepository.findById(new ObjectId(id))
-                    .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
-                    .map(ProjectServiceImpl::toDTO));
+        return ReactiveSecurityContextHolder.getContext().
+                flatMap(auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap(user -> userRepository.existsByIdAndProjectsContains(user.getId(), Project.builder().id(new ObjectId(id)).build()))
+                .flatMap(exists -> {
+                    if (exists) {
+                        return projectRepository.findById(new ObjectId(id))
+                                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist")))
+                                .map(ProjectServiceImpl::toDTO);
+                    } else {
+                        return Mono.empty();
+                    }
+                });
     }
 
     //TODO get all projects of user
@@ -151,7 +164,6 @@ public class ProjectServiceImpl implements ProjectService {
                                 });
                     }
                     else{
-                        System.out.println("Dit is fout");
                         return Mono.empty();
                     }
                 });
@@ -200,7 +212,13 @@ public class ProjectServiceImpl implements ProjectService {
                 .id(project.getId().toHexString())
                 .name(project.getName())
                 .description(project.getDescription())
-                .creator(project.getCreator())
+                .creator(User.builder()
+                        .id(project.getCreator().getId())
+                        .username(project.getCreator().getUsername())
+                        .firstName(project.getCreator().getFirstName())
+                        .lastName(project.getCreator().getLastName())
+                        .authorities(project.getCreator().getAuthorities())
+                        .build())
                 .build();
     }
 
