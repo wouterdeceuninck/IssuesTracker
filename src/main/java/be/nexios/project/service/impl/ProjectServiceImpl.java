@@ -23,7 +23,9 @@ import reactor.core.publisher.Mono;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 @Service
 public class ProjectServiceImpl implements ProjectService {
@@ -73,15 +75,12 @@ public class ProjectServiceImpl implements ProjectService {
                 });
     }
 
-    //TODO get all projects of user
     @PreAuthorize("isAuthenticated()")
     @Override
     public Flux<ProjectDTO> getProjects() {
-        return ReactiveSecurityContextHolder.getContext().flux().flatMap( auth -> {
-            User user = (User) auth.getAuthentication().getPrincipal();
-            return projectRepository.findAllByCreatorId(user.getId())
-                    .map(project -> ProjectServiceImpl.toDTO(project));
-        });
+        return ReactiveSecurityContextHolder.getContext().flux()
+                .flatMap( auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap( user -> Flux.fromIterable(user.getProjects().stream().map(p -> toDTO(p)).collect(Collectors.toList())));
     }
 
     private Mono<Void> privateUpdateProject(ObjectId projectId, ProjectDTO projectDTO) {
