@@ -33,7 +33,7 @@ public class UserServiceImpl implements UserService {
         user.setId(ObjectId.get());
         user.setUsername(dto.getUsername());
         user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setAuthorities(Collections.singletonList(new Role("ROLE_USER")));
+        user.setAuthorities(Collections.singletonList(Role.builder().authority("ROLE_USER").build()));
         user.setEnabled(true);
         return userRepository.save(user)
                 .map(created -> created.getId().toHexString());

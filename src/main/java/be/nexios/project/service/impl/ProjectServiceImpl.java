@@ -4,6 +4,7 @@ import be.nexios.project.domain.Issue;
 import be.nexios.project.domain.Project;
 import be.nexios.project.domain.User;
 import be.nexios.project.repository.ProjectRepository;
+import be.nexios.project.repository.UserRepository;
 import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.dto.IssueDTO;
 import be.nexios.project.service.dto.IssueFullDTO;
@@ -26,9 +27,11 @@ import java.util.ArrayList;
 public class ProjectServiceImpl implements ProjectService {
 
     private final ProjectRepository projectRepository;
+    private final UserRepository userRepository;
 
-    public ProjectServiceImpl(ProjectRepository projectRepository) {
+    public ProjectServiceImpl(ProjectRepository projectRepository, UserRepository userRepository) {
         this.projectRepository = projectRepository;
+        this.userRepository = userRepository;
     }
 
     @PreAuthorize("isAuthenticated()")
@@ -88,6 +91,29 @@ public class ProjectServiceImpl implements ProjectService {
                     found.getIssues().add(newIssue);
                     return projectRepository.save(found)
                             .then(Mono.just(newIssue.getId().toHexString()));
+                });
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @Override
+    public Mono<Void> addIssueToProject(String id, IssueDTO dto) {
+        return ReactiveSecurityContextHolder.getContext()
+                .flatMap(auth -> userRepository.findByUsername(auth.getAuthentication().getPrincipal().toString()))
+                .flatMap(user -> userRepository.existsByIdAndProjectsContains(user.getId(), Project.builder().id(new ObjectId(id)).build()))
+                .flatMap(exists -> {
+                    if (exists){
+                       return projectRepository.findById(new ObjectId(id))
+                                .switchIfEmpty(Mono.error(new NotFoundException("Project with id " + id + " does not exist!")))
+                                .flatMap(project -> {
+                                    Issue issue = toDomain(dto);
+                                    project.getIssues().add(issue);
+                                    return projectRepository.save(project).then();
+                                });
+                    }
+                    else{
+                        System.out.println("Dit is fout");
+                        return Mono.empty();
+                    }
                 });
     }
 

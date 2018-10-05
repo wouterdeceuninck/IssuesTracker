@@ -1,6 +1,7 @@
 package be.nexios.project.controller;
 
 import be.nexios.project.service.ProjectService;
+import be.nexios.project.service.dto.IssueDTO;
 import be.nexios.project.service.dto.ProjectDTO;
 import be.nexios.project.service.exception.BadRequestException;
 import be.nexios.project.service.exception.NotFoundException;
@@ -74,6 +75,15 @@ public class ProjectController {
     public Mono<Void> updateProject(@PathVariable("id") String id, @Valid @RequestBody ProjectDTO dto) {
         return projectService.updateProject(id, dto);
     }
+
+    /**
+     * Add an issue to an existing project
+     */
+    @PutMapping("/api/projects/addIssue/{id}")
+    public Mono<Void> addIssueToProject(@PathVariable("id") String id, @Valid @RequestBody IssueDTO dto) {
+        return projectService.addIssueToProject(id, dto);
+    }
+
 
     /**
      * DELETE /api/projects/{id}
