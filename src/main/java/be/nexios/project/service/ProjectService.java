@@ -33,4 +33,6 @@ public interface ProjectService {
     Flux<IssueDTO> getProjectIssues(String projectId);
 
     Mono<IssueFullDTO> getProjectIssue(String projectId, String issueId);
+
+    Mono<Void> addIssueToProject(String id, IssueDTO dto);
 }

@@ -1,9 +1,7 @@
 package be.nexios.project.controller;
 
 import be.nexios.project.config.JwtUtil;
-import be.nexios.project.domain.Project;
 import be.nexios.project.domain.User;
-import be.nexios.project.service.ProjectService;
 import be.nexios.project.service.UserService;
 import be.nexios.project.service.dto.AddUserDTO;
 import be.nexios.project.service.dto.ProjectDTO;
